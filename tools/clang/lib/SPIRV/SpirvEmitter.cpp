@@ -159,6 +159,8 @@ bool spirvToolsLegalize(spv_target_env env, std::vector<uint32_t> *module,
 
   optimizer.RegisterPass(spvtools::CreateCompactIdsPass());
 
+  optimizer.RegisterPass(spvtools::CreateLocalRootPass());
+
   return optimizer.Run(module->data(), module->size(), module, options);
 }
 

@@ -760,7 +760,7 @@ DeclResultIdMapper::DeclResultIdMapper(ASTContext &context,
     : spvBuilder(spirvBuilder), theEmitter(emitter), spirvOptions(options),
       astContext(context), spvContext(spirvContext),
       diags(context.getDiagnostics()), entryFunction(nullptr),
-      needsLegalization(false),
+      needsLegalization(true),
       glPerVertex(context, spirvContext, spirvBuilder) {}
 
 bool DeclResultIdMapper::decorateStageIOLocations() {
