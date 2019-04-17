@@ -1883,4 +1883,18 @@ TEST_F(FileTest, DecorationNoContractionStageVars) {
   runFileTest("decoration.no-contraction.stage-vars.hlsl");
 }
 
+// Tests for [[vk::shader_record_nv]]
+TEST_F(FileTest, VulkanShaderRecordBufferNV) { 
+  runFileTest("vk.shader-record-nv.hlsl"); 
+}
+TEST_F(FileTest, VulkanLayoutShaderRecordBufferNVStd430) {
+  setGlLayout();
+  runFileTest("vk.layout.shader-record-nv.std430.hlsl");
+}
+
+TEST_F(FileTest, VulkanShaderRecordBufferNVOffset) {
+  // Checks the behavior of [[vk::offset]] with [[vk::shader_record_nv]]
+  runFileTest("vk.shader-record-nv.offset.hlsl");
+}
+
 } // namespace

@@ -342,6 +342,10 @@ public:
   /// \brief Creates a PushConstant block from the given decl.
   SpirvVariable *createPushConstant(const VarDecl *decl);
 
+  /// \brief Creates a PushConstant block from the given decl.
+  SpirvVariable *createShaderRecordBufferNV(const VarDecl *decl);
+  SpirvVariable *createShaderRecordBufferNV(const HLSLBufferDecl *decl);
+
   /// \brief Creates the $Globals cbuffer.
   void createGlobalsCBuffer(const VarDecl *var);
 
@@ -528,6 +532,7 @@ private:
     TBuffer,
     PushConstant,
     Globals,
+    ShaderRecordBufferNV,
   };
 
   /// Creates a variable of struct type with explicit layout decorations.
