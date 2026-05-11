@@ -33,10 +33,12 @@ public:
 
   bool visit(SpirvLoad *) override;
   bool visit(SpirvAccessChain *) override;
+  bool visit(SpirvUntypedAccessChainKHR *) override;
   bool visit(SpirvUnaryOp *) override;
   bool visit(SpirvBinaryOp *) override;
   bool visit(SpirvSampledImage *) override;
   bool visit(SpirvImageTexelPointer *) override;
+  bool visit(SpirvUntypedImageTexelPointerEXT *) override;
   bool visit(SpirvAtomic *) override;
 
   using Visitor::visit;

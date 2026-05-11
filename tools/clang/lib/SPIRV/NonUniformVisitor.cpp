@@ -26,6 +26,14 @@ bool NonUniformVisitor::visit(SpirvAccessChain *instr) {
   return true;
 }
 
+bool NonUniformVisitor::visit(SpirvUntypedAccessChainKHR *instr) {
+  bool isNonUniform = instr->isNonUniform() || instr->getBase()->isNonUniform();
+  for (auto *index : instr->getIndices())
+    isNonUniform = isNonUniform || index->isNonUniform();
+  instr->setNonUniform(isNonUniform);
+  return true;
+}
+
 bool NonUniformVisitor::visit(SpirvUnaryOp *instr) {
   if (instr->getOperand()->isNonUniform())
     instr->setNonUniform();
@@ -46,6 +54,12 @@ bool NonUniformVisitor::visit(SpirvSampledImage *instr) {
 }
 
 bool NonUniformVisitor::visit(SpirvImageTexelPointer *instr) {
+  if (instr->getImage()->isNonUniform())
+    instr->setNonUniform();
+  return true;
+}
+
+bool NonUniformVisitor::visit(SpirvUntypedImageTexelPointerEXT *instr) {
   if (instr->getImage()->isNonUniform())
     instr->setNonUniform();
   return true;

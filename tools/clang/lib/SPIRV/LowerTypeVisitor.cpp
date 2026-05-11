@@ -224,6 +224,12 @@ bool LowerTypeVisitor::visitInstruction(SpirvInstruction *instr) {
     instr->setResultType(pointerType);
     break;
   }
+  case spv::Op::OpUntypedImageTexelPointerEXT: {
+    instr->setResultType(
+        spvContext.getUntypedPointerKHRType(spv::StorageClass::Image));
+    instr->setStorageClass(spv::StorageClass::Image);
+    break;
+  }
   // Sparse image operations return a sparse residency struct.
   case spv::Op::OpImageSparseSampleImplicitLod:
   case spv::Op::OpImageSparseSampleExplicitLod:
@@ -365,7 +371,8 @@ const SpirvType *LowerTypeVisitor::lowerType(const SpirvType *type,
     // If runtime array didn't contain any hybrid types, return itself.
     if (raType->getElementType() == loweredElemType)
       return raType;
-    return spvContext.getRuntimeArrayType(loweredElemType, raType->getStride());
+    return spvContext.getRuntimeArrayType(loweredElemType,
+                                          raType->getStride());
   }
   // Node payload arrays could contain a hybrid type
   else if (const auto *npaType = dyn_cast<NodePayloadArrayType>(type)) {

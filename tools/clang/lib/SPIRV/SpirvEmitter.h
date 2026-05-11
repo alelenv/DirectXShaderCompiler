@@ -33,6 +33,7 @@
 #include "clang/SPIRV/FeatureManager.h"
 #include "clang/SPIRV/SpirvBuilder.h"
 #include "clang/SPIRV/SpirvContext.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 
 #include "ConstEvaluator.h"
@@ -1202,6 +1203,13 @@ private:
                              const Expr *srcExpr);
   bool tryToAssignCounterVar(const Expr *dstExpr, const Expr *srcExpr);
 
+  /// Marks an alias resource as heap-loaded with no associated counter.
+  void markDescriptorHeapCounterUnsupported(const DeclaratorDecl *decl);
+
+  /// Returns true if counter operations on the resource expression are known to
+  /// be unsupported because the resource came from ResourceDescriptorHeap.
+  bool isDescriptorHeapCounterUnsupported(const Expr *expr) const;
+
   /// Returns an instruction that points to the alias counter variable with the
   /// entity represented by expr.
   ///
@@ -1554,6 +1562,20 @@ private:
   const FunctionDecl *curFunction;
   /// The SPIR-V function parameter for the current this object.
   SpirvInstruction *curThis;
+
+  /// Native descriptor heap image descriptors used to initialize local
+  /// RWTexture variables, or directly form image atomics. The emitter is
+  /// single-use per translation unit, so these AST-pointer maps live for the
+  /// emitter lifetime.
+  llvm::DenseMap<const Expr *, std::pair<SpirvInstruction *, const SpirvType *>>
+      descriptorHeapImageAccesses;
+  llvm::DenseMap<const VarDecl *,
+                 std::pair<SpirvInstruction *, const SpirvType *>>
+      descriptorHeapImageAliases;
+
+  /// RWStructuredBuffer aliases loaded from ResourceDescriptorHeap have no
+  /// associated UAV counter descriptor in the native descriptor heap path.
+  llvm::DenseSet<const DeclaratorDecl *> descriptorHeapUnsupportedCounters;
 
   /// The source location of a push constant block we have previously seen.
   /// Invalid means no push constant blocks defined thus far.

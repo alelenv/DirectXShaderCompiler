@@ -275,8 +275,7 @@ class RuntimeArrayType : public SpirvType {
 public:
   RuntimeArrayType(const SpirvType *elemType,
                    llvm::Optional<uint32_t> arrayStride)
-      : SpirvType(TK_RuntimeArray), elementType(elemType), stride(arrayStride) {
-  }
+      : SpirvType(TK_RuntimeArray), elementType(elemType), stride(arrayStride) {}
 
   static bool classof(const SpirvType *t) {
     return t->getKind() == TK_RuntimeArray;
