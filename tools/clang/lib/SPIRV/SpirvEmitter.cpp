@@ -67,6 +67,12 @@ bool isImplicitVarDeclInVkNamespace(const Decl *decl) {
   return false;
 }
 
+bool isRaytracingAccelerationStructure(QualType type) {
+  if (const auto *recordType = type->getAs<RecordType>())
+    return recordType->getDecl()->getName() == "RaytracingAccelerationStructure";
+  return false;
+}
+
 // Returns true if the given decl has the given semantic.
 bool hasSemantic(const DeclaratorDecl *decl,
                  hlsl::DXIL::SemanticKind semanticKind) {
@@ -2225,7 +2231,8 @@ void SpirvEmitter::doVarDecl(const VarDecl *decl) {
       }
       if (spirvOptions.useDescriptorHeap && init &&
           isDescriptorHeap(init->IgnoreParenCasts()) &&
-          isRWTexture(decl->getType())) {
+          (isRWTexture(decl->getType()) ||
+           isRaytracingAccelerationStructure(decl->getType()))) {
         if (auto *initVal = loadIfGLValue(init)) {
           auto found =
               descriptorHeapImageAccesses.find(init->IgnoreParenCasts());
