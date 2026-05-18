@@ -38,12 +38,16 @@ void main(uint3 tid : SV_DispatchThreadID) {
   uint index = tid.x & 1;
 
   // CHECK: %[[CBDescPtr:[a-zA-Z0-9_]+]] = OpUntypedAccessChainKHR %[[UntypedUniformConstant]] %[[CBDescArray]] %[[ResourceHeap]] %uint_0
-  // CHECK: %[[CBData:[a-zA-Z0-9_]+]] = OpBufferPointerEXT %[[CBPtr]] %[[CBDescPtr]]
+  // CHECK: OpBufferPointerEXT %[[CBPtr]] %[[CBDescPtr]]
   // CHECK: %[[TBDescPtr:[a-zA-Z0-9_]+]] = OpUntypedAccessChainKHR %[[UntypedUniformConstant]] %[[TBDescArray]] %[[ResourceHeap]] %uint_1
-  // CHECK: %[[TBData:[a-zA-Z0-9_]+]] = OpBufferPointerEXT %[[TBPtr]] %[[TBDescPtr]]
-  // CHECK: OpAccessChain %{{[a-zA-Z0-9_]+}} %[[CBData]] %int_0
-  // CHECK: OpAccessChain %{{[a-zA-Z0-9_]+}} %[[CBData]] %int_1 %{{[a-zA-Z0-9_]+}}
-  // CHECK: OpAccessChain %{{[a-zA-Z0-9_]+}} %[[TBData]] %int_0
-  // CHECK: OpAccessChain %{{[a-zA-Z0-9_]+}} %[[TBData]] %int_1 %int_1
+  // CHECK: OpBufferPointerEXT %[[TBPtr]] %[[TBDescPtr]]
+  // CHECK: %[[CBDataA:[a-zA-Z0-9_]+]] = OpBufferPointerEXT %[[CBPtr]] %[[CBDescPtr]]
+  // CHECK: OpAccessChain %{{[a-zA-Z0-9_]+}} %[[CBDataA]] %int_0
+  // CHECK: %[[CBDataB:[a-zA-Z0-9_]+]] = OpBufferPointerEXT %[[CBPtr]] %[[CBDescPtr]]
+  // CHECK: OpAccessChain %{{[a-zA-Z0-9_]+}} %[[CBDataB]] %int_1 %{{[a-zA-Z0-9_]+}}
+  // CHECK: %[[TBDataA:[a-zA-Z0-9_]+]] = OpBufferPointerEXT %[[TBPtr]] %[[TBDescPtr]]
+  // CHECK: OpAccessChain %{{[a-zA-Z0-9_]+}} %[[TBDataA]] %int_0
+  // CHECK: %[[TBDataB:[a-zA-Z0-9_]+]] = OpBufferPointerEXT %[[TBPtr]] %[[TBDescPtr]]
+  // CHECK: OpAccessChain %{{[a-zA-Z0-9_]+}} %[[TBDataB]] %int_1 %int_1
   outputBytes.Store(0, cb.a + cb.b[index] + tb.a + tb.b[1]);
 }

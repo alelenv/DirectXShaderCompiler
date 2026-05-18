@@ -1210,6 +1210,21 @@ private:
   /// be unsupported because the resource came from ResourceDescriptorHeap.
   bool isDescriptorHeapCounterUnsupported(const Expr *expr) const;
 
+  /// Records the descriptor heap index assigned to a local image resource
+  /// alias, if the source expression came directly from a descriptor heap. This
+  /// mirrors the normal resource handle store while preserving enough
+  /// information to recreate OpUntypedImageTexelPointerEXT after reassignment.
+  bool tryToAssignDescriptorHeapImageAlias(const DeclaratorDecl *dstDecl,
+                                           const Expr *srcExpr);
+  bool tryToAssignDescriptorHeapImageAlias(const Expr *dstExpr,
+                                           const Expr *srcExpr);
+  bool tryToAssignDescriptorHeapBufferAlias(const DeclaratorDecl *dstDecl,
+                                            const Expr *srcExpr);
+  bool tryToAssignDescriptorHeapBufferAlias(const Expr *dstExpr,
+                                            const Expr *srcExpr);
+  SpirvInstruction *getDescriptorHeapBufferAlias(const VarDecl *decl,
+                                                 SourceLocation loc);
+
   /// Returns an instruction that points to the alias counter variable with the
   /// entity represented by expr.
   ///
@@ -1563,15 +1578,46 @@ private:
   /// The SPIR-V function parameter for the current this object.
   SpirvInstruction *curThis;
 
-  /// Native descriptor heap image descriptors used to initialize local
-  /// RWTexture variables, or directly form image atomics. The emitter is
-  /// single-use per translation unit, so these AST-pointer maps live for the
-  /// emitter lifetime.
-  llvm::DenseMap<const Expr *, std::pair<SpirvInstruction *, const SpirvType *>>
+  /// Native descriptor heap image descriptors used to directly form image
+  /// atomics. The emitter is single-use per translation unit, so these
+  /// AST-pointer maps live for the emitter lifetime.
+  struct DescriptorHeapImageAccess {
+    SpirvInstruction *accessChain;
+    const SpirvType *imageType;
+    const SpirvType *arrayType;
+    SpirvInstruction *heap;
+    SpirvInstruction *index;
+    QualType indexType;
+  };
+  struct DescriptorHeapImageAlias {
+    SpirvVariable *indexVar;
+    const SpirvType *imageType;
+    const SpirvType *arrayType;
+    SpirvInstruction *heap;
+  };
+  struct DescriptorHeapBufferAccess {
+    const SpirvPointerType *bufferPointerType;
+    const SpirvType *arrayType;
+    SpirvInstruction *heap;
+    SpirvInstruction *index;
+    QualType indexType;
+    SpirvLayoutRule layoutRule;
+  };
+  struct DescriptorHeapBufferAlias {
+    SpirvVariable *indexVar;
+    const SpirvPointerType *bufferPointerType;
+    const SpirvType *arrayType;
+    SpirvInstruction *heap;
+    SpirvLayoutRule layoutRule;
+  };
+  llvm::DenseMap<const Expr *, DescriptorHeapImageAccess>
       descriptorHeapImageAccesses;
-  llvm::DenseMap<const VarDecl *,
-                 std::pair<SpirvInstruction *, const SpirvType *>>
-      descriptorHeapImageAliases;
+  llvm::DenseMap<const VarDecl *, DescriptorHeapImageAlias>
+      descriptorHeapImageAliasVars;
+  llvm::DenseMap<const Expr *, DescriptorHeapBufferAccess>
+      descriptorHeapBufferAccesses;
+  llvm::DenseMap<const VarDecl *, DescriptorHeapBufferAlias>
+      descriptorHeapBufferAliasVars;
 
   /// RWStructuredBuffer aliases loaded from ResourceDescriptorHeap have no
   /// associated UAV counter descriptor in the native descriptor heap path.
