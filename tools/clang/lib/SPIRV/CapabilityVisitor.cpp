@@ -959,7 +959,7 @@ bool CapabilityVisitor::visit(SpirvModule *, Visitor::Phase phase) {
     addExtension(Extension::EXT_descriptor_heap, "DescriptorHeap", {});
     addExtension(Extension::KHR_untyped_pointers, "DescriptorHeap", {});
     addCapability(spv::Capability::DescriptorHeapEXT);
-    addCapability(spv::Capability::UntypedPointersKHR);
+    // UntypedPointersKHR is implicitly declared by DescriptorHeapEXT per spec.
   }
 
   return true;
