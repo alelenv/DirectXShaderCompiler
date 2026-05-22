@@ -1,7 +1,7 @@
 // RUN: %dxc -T cs_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
 
 // CHECK: OpCapability DescriptorHeapEXT
-// CHECK: OpCapability UntypedPointersKHR
+// CHECK-NOT: OpCapability UntypedPointersKHR
 // CHECK: OpExtension "SPV_EXT_descriptor_heap"
 // CHECK: OpExtension "SPV_KHR_untyped_pointers"
 

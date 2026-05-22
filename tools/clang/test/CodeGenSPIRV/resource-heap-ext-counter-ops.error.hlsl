@@ -1,8 +1,8 @@
 // RUN: not %dxc -T cs_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv -DTEST_INCREMENT %s 2>&1 | FileCheck --check-prefix=INC %s
 // RUN: not %dxc -T cs_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s 2>&1 | FileCheck --check-prefix=DEC %s
 
-// INC: counter operations on heap-loaded RWStructuredBuffer are not supported with SPV_EXT_descriptor_heap
-// DEC: counter operations on heap-loaded RWStructuredBuffer are not supported with SPV_EXT_descriptor_heap
+// INC: Cannot access associated counter variable for an array of buffers in a struct
+// DEC: Cannot access associated counter variable for an array of buffers in a struct
 
 RWByteAddressBuffer outputBytes : register(u0);
 

@@ -2,7 +2,7 @@
 
 // CHECK: OpCapability RayTracingKHR
 // CHECK: OpCapability DescriptorHeapEXT
-// CHECK: OpCapability UntypedPointersKHR
+// CHECK-NOT: OpCapability UntypedPointersKHR
 // CHECK: OpExtension "SPV_KHR_ray_tracing"
 // CHECK: OpExtension "SPV_EXT_descriptor_heap"
 // CHECK: OpExtension "SPV_KHR_untyped_pointers"

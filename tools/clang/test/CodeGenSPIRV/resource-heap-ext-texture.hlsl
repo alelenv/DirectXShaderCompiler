@@ -1,12 +1,13 @@
 // RUN: %dxc -T cs_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
 
 // CHECK: OpCapability DescriptorHeapEXT
-// CHECK: OpCapability UntypedPointersKHR
+// CHECK-NOT: OpCapability UntypedPointersKHR
 // CHECK: OpExtension "SPV_EXT_descriptor_heap"
 // CHECK: OpExtension "SPV_KHR_untyped_pointers"
 
 // CHECK-DAG: OpDecorate %[[ResourceHeap:[a-zA-Z0-9_]+]] BuiltIn ResourceHeapEXT
 // CHECK-DAG: OpDecorate %[[SamplerHeap:[a-zA-Z0-9_]+]] BuiltIn SamplerHeapEXT
+// CHECK-DAG: OpDecorate {{%[a-zA-Z0-9_]+}} ArrayStride 32
 // CHECK-DAG: OpDecorate {{%[a-zA-Z0-9_]+}} ArrayStride 32
 
 // CHECK-DAG: %[[UntypedPtrType:[a-zA-Z0-9_]+]] = OpTypeUntypedPointerKHR UniformConstant
@@ -22,8 +23,8 @@
 // CHECK-DAG: %[[RA_RWBufferType:[a-zA-Z0-9_]+]] = OpTypeRuntimeArray %[[RWBufferType]]{{$}}
 // CHECK-DAG: %[[RA_SamplerType:[a-zA-Z0-9_]+]] = OpTypeRuntimeArray %[[SamplerType]]{{$}}
 
-// CHECK: %[[ResourceHeap]] = OpUntypedVariableKHR %[[UntypedPtrType]] UniformConstant
-// CHECK: %[[SamplerHeap]]  = OpUntypedVariableKHR %[[UntypedPtrType]] UniformConstant
+// CHECK-DAG: %[[ResourceHeap]] = OpUntypedVariableKHR %[[UntypedPtrType]] UniformConstant
+// CHECK-DAG: %[[SamplerHeap]]  = OpUntypedVariableKHR %[[UntypedPtrType]] UniformConstant
 
 [numthreads(1, 1, 1)]
 void main(uint3 tid : SV_DispatchThreadID) {
