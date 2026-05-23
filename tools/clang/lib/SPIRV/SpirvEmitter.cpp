@@ -5083,9 +5083,20 @@ SpirvEmitter::processStructuredBufferLoad(const CXXMemberCallExpr *expr) {
   auto *zero = spvBuilder.getConstantInt(astContext.IntTy, llvm::APInt(32, 0));
   auto *index = doExpr(expr->getArg(0));
 
-  return derefOrCreatePointerToValue(buffer->getType(), info, structType,
-                                     {zero, index}, buffer->getExprLoc(),
-                                     range);
+  auto *result = derefOrCreatePointerToValue(buffer->getType(), info, structType,
+                                             {zero, index}, buffer->getExprLoc(),
+                                             range);
+
+  // derefOrCreatePointerToValue returns an lvalue (AccessChain) when the base
+  // is an lvalue (e.g. descriptor heap alias buffers). StructuredBuffer::Load
+  // semantically returns a value, and the AST will not emit an LValueToRValue
+  // cast for the call expression. Emit the load explicitly.
+  if (result && !result->isRValue()) {
+    result = spvBuilder.createLoad(structType, result, buffer->getExprLoc(),
+                                   range);
+  }
+
+  return result;
 }
 
 void SpirvEmitter::markDescriptorHeapCounterUnsupported(
@@ -5157,6 +5168,9 @@ bool SpirvEmitter::tryToAssignDescriptorHeapBufferAlias(
   auto found = descriptorHeapBufferAccesses.find(src);
   if (found == descriptorHeapBufferAccesses.end())
     return false;
+
+  if (isRWStructuredBuffer(dstVar->getType()))
+    markDescriptorHeapCounterUnsupported(dstVar);
 
   auto &alias = descriptorHeapBufferAliasVars[dstVar];
   if (!alias.indexVar) {
@@ -6906,8 +6920,9 @@ SpirvEmitter::doCXXOperatorCallExpr(const CXXOperatorCallExpr *expr,
           }
 
           // ConstantBuffer -> Uniform (UBO); all others -> StorageBuffer (SSBO)
-          // Cant use bufferDataPointerType->getStorageClass() because
-          // LowerTypeVisitor returns Uniform for all alias pointers.
+          // TODO: Remove this manual override once LowerTypeVisitor returns the
+          // correct StorageClass for descriptor-heap alias pointer types
+          // (currently it returns Uniform for all of them).
           const spv::StorageClass bufferExtSC =
               isConstantBuffer(resourceType) ? spv::StorageClass::Uniform
                                              : spv::StorageClass::StorageBuffer;
