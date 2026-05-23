@@ -36,6 +36,17 @@ void main(uint3 tid : SV_DispatchThreadID) {
   InterlockedAdd(((RWTexture2D<uint>)ResourceDescriptorHeap[1])[tid.xy], 2,
                  directOriginal);
 
+  // Reassignment: atomic must use the NEW descriptor (index 3, not 2).
+  RWTexture2D<uint> reassigned = ResourceDescriptorHeap[2];
+  reassigned = ResourceDescriptorHeap[3];
+  uint reassignedOriginal;
+  // CHECK: %[[ReassignDesc:[a-zA-Z0-9_]+]] = OpUntypedAccessChainKHR %[[UntypedUniformConstant]] %[[RWTexArray]] %[[ResourceHeap]] %uint_3
+  // CHECK-NOT: OpImageTexelPointer
+  // CHECK: %[[ReassignTexelPtr:[a-zA-Z0-9_]+]] = OpUntypedImageTexelPointerEXT %[[UntypedImage]] %[[RWTexType]] %[[ReassignDesc]]
+  // CHECK: OpAtomicIAdd %uint %[[ReassignTexelPtr]]
+  InterlockedAdd(reassigned[tid.xy], 3, reassignedOriginal);
+
   outputBytes.Store(0, original);
   outputBytes.Store(4, directOriginal);
+  outputBytes.Store(8, reassignedOriginal);
 }

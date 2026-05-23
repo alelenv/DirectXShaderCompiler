@@ -1,4 +1,4 @@
-// RUN: %dxc -T cs_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
+// RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
 
 // CHECK: OpCapability DescriptorHeapEXT
 // CHECK-NOT: OpCapability UntypedPointersKHR
@@ -37,7 +37,6 @@ void main(uint3 tid : SV_DispatchThreadID) {
   ByteAddressBuffer inputBytes = ResourceDescriptorHeap[2];
   ConstantBuffer<Constants> constants = ResourceDescriptorHeap[3];
 
-
   // CHECK: %[[InputDesc:[a-zA-Z0-9_]+]] = OpUntypedAccessChainKHR %[[UntypedPtrType]] %[[SBBufArray]] %[[ResourceHeap]] %uint_0
   // CHECK: OpBufferPointerEXT %[[SBInputPtr]] %[[InputDesc]]
   // CHECK: %[[OutputDesc:[a-zA-Z0-9_]+]] = OpUntypedAccessChainKHR %[[UntypedPtrType]] %[[SBBufArray]] %[[ResourceHeap]] %uint_1
@@ -48,4 +47,10 @@ void main(uint3 tid : SV_DispatchThreadID) {
   // CHECK: OpBufferPointerEXT %[[UConstPtr]] %[[ConstantsDesc]]
   output[tid.x] = input.Load(tid.x) + inputBytes.Load(tid.x * 4) + constants.value;
   outputBytes.Store(tid.x * 4, output[tid.x]);
+
+  // Reassignment: verify new descriptor (index 4) is used after reassign.
+  input = ResourceDescriptorHeap[4];
+  // CHECK: %[[ReassignedDesc:[a-zA-Z0-9_]+]] = OpUntypedAccessChainKHR %[[UntypedPtrType]] %[[SBBufArray]] %[[ResourceHeap]] %uint_4
+  // CHECK: OpBufferPointerEXT %[[SBInputPtr]] %[[ReassignedDesc]]
+  outputBytes.Store(tid.x * 4 + 4, input.Load(tid.x));
 }
