@@ -399,6 +399,28 @@ private:
   /// Translates the given varDecl into a spec constant.
   void createSpecConstant(const VarDecl *varDecl);
 
+  /// Translates the given varDecl into a descriptor heap stride specialization
+  /// constant. The registered spec constant is later emitted as an
+  /// ArrayStrideIdEXT decoration on every resource/sampler heap runtime array.
+  void createResourceHeapStrideConstant(const VarDecl *varDecl);
+  void createSamplerHeapStrideConstant(const VarDecl *varDecl);
+
+  /// Shared implementation for createResourceHeapStrideConstant and
+  /// createSamplerHeapStrideConstant. Validates the varDecl, emits an
+  /// OpSpecConstant decorated with specConstId, and registers it.
+  /// attrName is used verbatim in diagnostics (e.g. "resource_heap_stride_constant_id").
+  void createDescriptorHeapStrideConstant(const VarDecl *varDecl,
+                                          uint32_t specConstId,
+                                          llvm::StringRef attrName);
+
+  /// Returns the OpTypeRuntimeArray for a descriptor-heap array of \p elemType.
+  /// If a stride spec constant was declared for the relevant heap
+  /// (sampler heap when \p onSamplerHeap, otherwise resource heap), the array
+  /// carries an ArrayStrideIdEXT decoration; otherwise it uses the literals
+  /// kDefaultSamplerHeapStride / kDefaultResourceHeapStride.
+  const SpirvType *getDescriptorHeapRuntimeArrayType(const SpirvType *elemType,
+                                                     bool onSamplerHeap);
+
   /// Generates the necessary instructions for conducting the given binary
   /// operation on lhs and rhs.
   ///
