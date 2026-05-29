@@ -955,13 +955,11 @@ bool CapabilityVisitor::visit(SpirvModule *, Visitor::Phase phase) {
                                        {spv::Capability::QuadControlKHR});
 
   if (spvOptions.useDescriptorHeap) {
-    featureManager.requestTargetEnv(SPV_ENV_VULKAN_1_3, "DescriptorHeap", {});
-    addExtension(Extension::EXT_descriptor_heap, "DescriptorHeap", {});
-    // Extension still required even though the capability is implied.
-    addExtension(Extension::KHR_untyped_pointers, "DescriptorHeap", {});
+    const llvm::StringRef feature = "DescriptorHeap";
+    featureManager.requestTargetEnv(SPV_ENV_VULKAN_1_3, feature, {});
+    addExtension(Extension::EXT_descriptor_heap, feature, {});
+    addExtension(Extension::KHR_untyped_pointers, feature, {});
     addCapability(spv::Capability::DescriptorHeapEXT);
-    // UntypedPointersKHR capability is implicitly declared by DescriptorHeapEXT
-    // per spec, so we do not emit it explicitly.
   }
 
   return true;

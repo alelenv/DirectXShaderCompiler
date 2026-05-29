@@ -110,6 +110,14 @@ struct SpirvCodeGenOptions {
   std::optional<BindingInfo> samplerHeapBinding;
   std::optional<BindingInfo> counterHeapBinding;
 
+  // User-defined byte ArrayStride overrides for the resource/sampler descriptor
+  // heap runtime arrays (-fvk-resource-heap-stride / -fvk-resource-sampler-stride).
+  // When set, the value is a literal power of 2 in [8, 256]. A
+  // [[vk::*_heap_stride_constant_id]] spec-constant override, if present, takes
+  // precedence over these literals.
+  std::optional<uint32_t> resourceHeapStride;
+  std::optional<uint32_t> samplerHeapStride;
+
   bool signaturePacking =
       false; ///< Whether signature packing is enabled or not
 

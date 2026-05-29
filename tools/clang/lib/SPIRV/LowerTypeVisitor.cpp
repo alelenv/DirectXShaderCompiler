@@ -371,8 +371,7 @@ const SpirvType *LowerTypeVisitor::lowerType(const SpirvType *type,
     // If runtime array didn't contain any hybrid types, return itself.
     if (raType->getElementType() == loweredElemType)
       return raType;
-    return spvContext.getRuntimeArrayType(loweredElemType,
-                                          raType->getStride());
+    return spvContext.getRuntimeArrayType(loweredElemType, raType->getStride());
   }
   // Node payload arrays could contain a hybrid type
   else if (const auto *npaType = dyn_cast<NodePayloadArrayType>(type)) {

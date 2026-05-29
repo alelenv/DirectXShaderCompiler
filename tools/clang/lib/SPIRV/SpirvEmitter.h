@@ -1244,8 +1244,35 @@ private:
                                             const Expr *srcExpr);
   bool tryToAssignDescriptorHeapBufferAlias(const Expr *dstExpr,
                                             const Expr *srcExpr);
-  SpirvInstruction *getDescriptorHeapBufferAlias(const VarDecl *decl,
-                                                 SourceLocation loc);
+
+  /// Emits the instructions that re-derive the buffer-data pointer for a
+  /// descriptor-heap buffer alias \p decl (OpLoad of the saved index, then
+  /// OpUntypedAccessChainKHR + OpBufferPointerEXT). Returns nullptr if \p decl
+  /// is not a recorded heap buffer alias. Not a pure lookup -- it emits.
+  SpirvInstruction *emitDescriptorHeapBufferPointer(const VarDecl *decl,
+                                                    SourceLocation loc);
+
+  /// Emits an OpUntypedImageTexelPointerEXT for a descriptor-heap image alias
+  /// \p decl (OpLoad of the saved index, then OpUntypedAccessChainKHR feeding
+  /// the texel pointer). Returns nullptr if \p decl is not a recorded heap
+  /// image alias. Symmetric with emitDescriptorHeapBufferPointer.
+  SpirvInstruction *emitDescriptorHeapImageTexelPointer(
+      const VarDecl *decl, SpirvInstruction *coordinate,
+      SpirvInstruction *sample, QualType resultType, SourceLocation loc);
+
+  /// Emits OpLoad of \p indexVar then OpUntypedAccessChainKHR into the heap,
+  /// yielding the per-descriptor pointer shared by the buffer/image alias
+  /// re-derivation paths above.
+  SpirvInstruction *emitDescriptorHeapAccessChain(const SpirvType *arrayType,
+                                                  SpirvInstruction *heap,
+                                                  SpirvVariable *indexVar,
+                                                  SourceLocation loc);
+
+  /// Stores \p index (cast to uint when needed) into the alias \p indexVar,
+  /// shared by the image/buffer alias-assignment paths.
+  void storeDescriptorHeapIndex(SpirvVariable *indexVar,
+                                SpirvInstruction *index, QualType indexType,
+                                const Expr *srcExpr);
 
   /// Returns an instruction that points to the alias counter variable with the
   /// entity represented by expr.
