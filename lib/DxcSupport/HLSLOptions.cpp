@@ -1214,9 +1214,9 @@ int ReadDxcOpts(const OptTable *optionTable, unsigned flagsToInclude,
   if (!handleHeapStride(Args, OPT_fvk_resource_heap_stride,
                         &opts.SpirvOptions.resourceHeapStride,
                         "-fvk-resource-heap-stride", errors) ||
-      !handleHeapStride(Args, OPT_fvk_resource_sampler_stride,
+      !handleHeapStride(Args, OPT_fvk_sampler_heap_stride,
                         &opts.SpirvOptions.samplerHeapStride,
-                        "-fvk-resource-sampler-stride", errors)) {
+                        "-fvk-sampler-heap-stride", errors)) {
     return 1;
   }
 
@@ -1363,7 +1363,7 @@ int ReadDxcOpts(const OptTable *optionTable, unsigned flagsToInclude,
       !Args.getLastArgValue(OPT_fvk_bind_sampler_heap).empty() ||
       !Args.getLastArgValue(OPT_fvk_bind_counter_heap).empty() ||
       !Args.getLastArgValue(OPT_fvk_resource_heap_stride).empty() ||
-      !Args.getLastArgValue(OPT_fvk_resource_sampler_stride).empty()) {
+      !Args.getLastArgValue(OPT_fvk_sampler_heap_stride).empty()) {
     errors << "SPIR-V CodeGen not available. "
               "Please recompile with -DENABLE_SPIRV_CODEGEN=ON.";
     return 1;

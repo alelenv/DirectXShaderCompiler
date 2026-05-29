@@ -1,4 +1,4 @@
-// RUN: %dxc -T cs_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
+// RUN: %dxc -T cs_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -fvk-resource-heap-stride 64 -fvk-sampler-heap-stride 32 -spirv %s | FileCheck %s
 
 // CHECK: OpCapability DescriptorHeapEXT
 // CHECK-NOT: OpCapability UntypedPointersKHR
@@ -6,8 +6,8 @@
 // CHECK: OpExtension "SPV_KHR_untyped_pointers"
 
 // CHECK-DAG: OpDecorate %[[ResourceHeap:[a-zA-Z0-9_]+]] BuiltIn ResourceHeapEXT
-// CHECK-DAG: OpDecorate %{{[a-zA-Z0-9_]+}} ArrayStride 32
-// CHECK-DAG: OpDecorate %{{[a-zA-Z0-9_]+}} ArrayStride 32
+// CHECK-DAG: OpDecorate %{{[a-zA-Z0-9_]+}} ArrayStride 64
+// CHECK-DAG: OpDecorate %{{[a-zA-Z0-9_]+}} ArrayStride 64
 // CHECK-DAG: OpDecorate %type_ConstantBuffer_Data Block
 // CHECK-DAG: OpDecorate %type_TextureBuffer_Data Block
 // CHECK-DAG: OpMemberDecorate %type_TextureBuffer_Data 0 NonWritable

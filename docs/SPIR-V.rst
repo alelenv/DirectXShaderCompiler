@@ -2081,15 +2081,15 @@ Bindings & sets associated with each heap can be explicitly set using:
   and set number for the counter heap.
 
 Native descriptor heap extension lowering
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When ``-fspv-use-descriptor-heap`` is specified, DXC lowers
 ``ResourceDescriptorHeap`` and ``SamplerDescriptorHeap`` through
 ``SPV_EXT_descriptor_heap`` instead of the default emulated heap path. This
-also requires ``SPV_KHR_untyped_pointers``, ``-fspv-target-env=vulkan1.3``,
-and SPIR-V dependencies that contain the corresponding upstream extension
-definitions. The emitted module declares the heap objects as untyped variables
-in ``UniformConstant`` storage class:
+also requires ``SPV_KHR_untyped_pointers`` and ``-fspv-target-env=vulkan1.3``
+(targeting a lower environment is an error), and a SPIRV-Headers / SPIRV-Tools
+build that defines these extensions. The emitted module declares the heap
+objects as untyped variables in ``UniformConstant`` storage class:
 
 .. code:: spirv
 
@@ -2101,14 +2101,15 @@ in ``UniformConstant`` storage class:
 
 The concrete descriptor type is selected at each heap access. For image,
 sampler, and texel buffer resources, DXC forms a runtime array of that
-descriptor type, decorates the array with a fixed 32-byte ``ArrayStride``, and
-uses ``OpUntypedAccessChainKHR`` followed by ``OpLoad``:
+descriptor type, decorates the array with a byte ``ArrayStride`` (the stride is
+configurable; see `Descriptor heap array stride`_ below), and uses
+``OpUntypedAccessChainKHR`` followed by ``OpLoad``:
 
 .. code:: spirv
 
   %image_type = OpTypeImage %float 2D 2 0 0 1 Unknown
   %image_array = OpTypeRuntimeArray %image_type
-  OpDecorate %image_array ArrayStride 32
+  OpDecorate %image_array ArrayStride 64
   %descriptor = OpUntypedAccessChainKHR %uptr_uc %image_array %resource_heap %index
   %image = OpLoad %image_type %descriptor
 
@@ -2122,9 +2123,35 @@ example, ``ConstantBuffer<T>`` uses ``Uniform`` and ``TextureBuffer<T>`` uses
 
   %buffer_type = OpTypeBufferEXT Uniform
   %buffer_array = OpTypeRuntimeArray %buffer_type
-  OpDecorate %buffer_array ArrayStride 32
+  OpDecorate %buffer_array ArrayStride 64
   %descriptor = OpUntypedAccessChainKHR %uptr_uc %buffer_array %resource_heap %index
   %buffer_ptr = OpBufferPointerEXT %_ptr_Uniform_type_BufferData %descriptor
+
+Descriptor heap array stride
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The ``ArrayStride`` of each heap runtime array defaults to 64 bytes for the
+resource heap and 32 bytes for the sampler heap. These defaults bound the
+largest descriptor a heap entry can hold on current target hardware. The stride
+can be overridden, in increasing order of precedence:
+
+- ``[[vk::resource_heap_stride_constant_id(id)]]`` and
+  ``[[vk::sampler_heap_stride_constant_id(id)]]`` on a ``uint`` global emit the
+  stride as a specialization constant decorated ``ArrayStrideIdEXT`` (an ``<id>``)
+  instead of a literal, letting the application override it at pipeline creation
+  through ``VkSpecializationInfo``. The attribute initializer supplies the default
+  value and must be a power of two in [8, 256]. This attribute is mutually
+  exclusive with ``[[vk::constant_id]]`` on the same declaration.
+- ``-fvk-resource-heap-stride <N>`` and ``-fvk-sampler-heap-stride <N>``
+  emit a fixed literal ``OpDecorate ... ArrayStride N`` on the resource and
+  sampler heap arrays respectively. ``N`` must be a power of two in the inclusive
+  range [8, 256]. The command-line override has the **highest** precedence: when
+  set, the matching ``[[vk::*_heap_stride_constant_id]]`` attribute is ignored
+  (DXC emits a warning at the attribute and no ``ArrayStrideIdEXT`` is emitted for
+  that heap) and the literal stride is used.
+
+So the command-line literal takes precedence over the spec-constant attribute,
+which in turn takes precedence over the built-in defaults.
 
 For ``RWTexture`` resources loaded from ``ResourceDescriptorHeap``, interlocked
 operations that need a texel pointer use ``OpUntypedImageTexelPointerEXT``.

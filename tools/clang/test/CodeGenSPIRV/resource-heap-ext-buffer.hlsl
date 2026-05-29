@@ -1,4 +1,4 @@
-// RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
+// RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -fvk-resource-heap-stride 64 -fvk-sampler-heap-stride 32 -spirv %s | FileCheck %s
 
 // CHECK: OpCapability DescriptorHeapEXT
 // CHECK-NOT: OpCapability UntypedPointersKHR
@@ -6,9 +6,10 @@
 // CHECK: OpExtension "SPV_KHR_untyped_pointers"
 
 // CHECK-DAG: OpDecorate %[[ResourceHeap:[a-zA-Z0-9_]+]] BuiltIn ResourceHeapEXT
-// One ArrayStride 32 per heap descriptor array (StorageBuffer and Uniform).
-// CHECK-DAG: OpDecorate %{{[a-zA-Z0-9_]+}} ArrayStride 32
-// CHECK-DAG: OpDecorate %{{[a-zA-Z0-9_]+}} ArrayStride 32
+// One ArrayStride 64 per heap descriptor array (StorageBuffer and Uniform);
+// pinned via -fvk-resource-heap-stride so the test is independent of the default.
+// CHECK-DAG: OpDecorate %{{[a-zA-Z0-9_]+}} ArrayStride 64
+// CHECK-DAG: OpDecorate %{{[a-zA-Z0-9_]+}} ArrayStride 64
 
 // CHECK-DAG: %[[UntypedPtrType:[a-zA-Z0-9_]+]] = OpTypeUntypedPointerKHR UniformConstant
 // CHECK-DAG: %[[SBBufDesc:[a-zA-Z0-9_]+]] = OpTypeBufferEXT StorageBuffer

@@ -37,14 +37,19 @@ float4 main(float2 uv : TEXCOORD0) : SV_Target {
   // CHECK: %[[HeapDesc:[a-zA-Z0-9_]+]] = OpUntypedAccessChainKHR %[[UntypedPtr]] %[[RA_Tex2D]] %[[ResourceHeap]] %uint_1
   // CHECK: %[[HeapVal:[a-zA-Z0-9_]+]] = OpLoad %[[Tex2DType]] %[[HeapDesc]]
 
+  // Heap sampler (shared by both samples below).
+  // CHECK: %[[SampChain:[a-zA-Z0-9_]+]] = OpUntypedAccessChainKHR %[[UntypedPtr]] %[[RA_Sampler]] %[[SamplerHeap]] %uint_0
+  // CHECK: %[[SampH:[a-zA-Z0-9_]+]] = OpLoad %[[SamplerType]] %[[SampChain]]
+
   // Bound texture: plain OpLoad from OpVariable.
   // CHECK: %[[BoundVal:[a-zA-Z0-9_]+]] = OpLoad %[[Tex2DType]] %[[BoundTex]]
 
-  // CHECK: OpSampledImage %{{.*}} %[[BoundVal]]
+  // Verify: bound image + heap sampler combined; heap image + heap sampler combined.
+  // CHECK: OpSampledImage %{{.*}} %[[BoundVal]] %[[SampH]]
   // CHECK: OpImageSampleImplicitLod
   float4 a = boundTex.Sample(samp, uv);
 
-  // CHECK: OpSampledImage %{{.*}} %[[HeapVal]]
+  // CHECK: OpSampledImage %{{.*}} %[[HeapVal]] %[[SampH]]
   // CHECK: OpImageSampleImplicitLod
   float4 b = heapTex.Sample(samp, uv + 0.5);
 

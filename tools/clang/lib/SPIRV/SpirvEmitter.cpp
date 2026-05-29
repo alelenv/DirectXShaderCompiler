@@ -9210,26 +9210,32 @@ void SpirvEmitter::createSpecConstant(const VarDecl *varDecl) {
 const SpirvType *
 SpirvEmitter::getDescriptorHeapRuntimeArrayType(const SpirvType *elemType,
                                                 bool onSamplerHeap) {
-  // A [[vk::*_heap_stride_constant_id]] spec-constant override has highest
-  // precedence: it emits ArrayStrideIdEXT (an <id>) so the app can override the
-  // stride at pipeline creation.
-  const auto &heapStride = onSamplerHeap ? declIdMapper.getSamplerHeapStride()
-                                         : declIdMapper.getResourceHeapStride();
-  if (heapStride.hasValue())
-    return spvContext.getRuntimeArrayType(elemType, llvm::None,
-                                          heapStride->specConst);
+  // Precedence (highest first): command-line literal override >
+  // [[vk::*_heap_stride_constant_id]] spec-constant attribute > built-in default.
 
-  // A -fvk-resource-heap-stride / -fvk-resource-sampler-stride command-line
-  // override is a fixed literal stride. It is validated (power of 2 in [8, 256])
-  // at option-parsing time in HLSLOptions.cpp.
+  // 1. A -fvk-resource-heap-stride / -fvk-sampler-heap-stride command-line
+  // override is a fixed literal stride, validated (power of 2 in [8, 256]) at
+  // option-parsing time in HLSLOptions.cpp. It has the highest precedence: when
+  // set, the matching stride attribute is suppressed (with a warning) in
+  // create{Resource,Sampler}HeapStrideConstant, so getSamplerHeapStride() /
+  // getResourceHeapStride() is already empty here.
   const std::optional<uint32_t> &cliStride =
       onSamplerHeap ? spirvOptions.samplerHeapStride
                     : spirvOptions.resourceHeapStride;
   if (cliStride.has_value())
     return spvContext.getRuntimeArrayType(elemType, *cliStride);
 
-  // Default ArrayStride (in bytes) for the descriptor-heap runtime arrays when no
-  // override (attribute or command line) is supplied.
+  // 2. A [[vk::*_heap_stride_constant_id]] spec-constant attribute emits
+  // ArrayStrideIdEXT (an <id>) so the app can override the stride at pipeline
+  // creation.
+  const auto &heapStride = onSamplerHeap ? declIdMapper.getSamplerHeapStride()
+                                         : declIdMapper.getResourceHeapStride();
+  if (heapStride.hasValue())
+    return spvContext.getRuntimeArrayType(elemType, llvm::None,
+                                          heapStride->specConst);
+
+  // 3. Default ArrayStride (in bytes) for the descriptor-heap runtime arrays when
+  // no override (command line or attribute) is supplied.
   //
   // These bound the largest descriptor a heap entry can hold on the target HW.
   constexpr uint32_t kDefaultResourceHeapStride = 64;
@@ -9246,6 +9252,16 @@ void SpirvEmitter::createResourceHeapStrideConstant(const VarDecl *varDecl) {
   // mutual-exclusion error before we get here.
   assert(!varDecl->hasAttr<VKConstantIdAttr>() &&
          "VKConstantId must be handled by createSpecConstant");
+  // -fvk-resource-heap-stride has higher precedence (see
+  // getDescriptorHeapRuntimeArrayType). When set, this attribute is ignored:
+  // skip emitting the spec constant so the module carries no dead,
+  // SpecId-decorated constant.
+  if (spirvOptions.resourceHeapStride.has_value()) {
+    emitWarning("[[vk::resource_heap_stride_constant_id]] is ignored because "
+                "-fvk-resource-heap-stride overrides the resource heap stride",
+                varDecl->getLocation());
+    return;
+  }
   if (const auto &prevStride = declIdMapper.getResourceHeapStride()) {
     emitError("[[vk::resource_heap_stride_constant_id]] may only appear once "
               "per translation unit; previous declaration here",
@@ -9285,6 +9301,16 @@ void SpirvEmitter::createSamplerHeapStrideConstant(const VarDecl *varDecl) {
   // mutual-exclusion error before we get here.
   assert(!varDecl->hasAttr<VKConstantIdAttr>() &&
          "VKConstantId must be handled by createSpecConstant");
+  // -fvk-sampler-heap-stride has higher precedence (see
+  // getDescriptorHeapRuntimeArrayType). When set, this attribute is ignored:
+  // skip emitting the spec constant so the module carries no dead,
+  // SpecId-decorated constant.
+  if (spirvOptions.samplerHeapStride.has_value()) {
+    emitWarning("[[vk::sampler_heap_stride_constant_id]] is ignored because "
+                "-fvk-sampler-heap-stride overrides the sampler heap stride",
+                varDecl->getLocation());
+    return;
+  }
   if (const auto &prevStride = declIdMapper.getSamplerHeapStride()) {
     emitError("[[vk::sampler_heap_stride_constant_id]] may only appear once "
               "per translation unit; previous declaration here",

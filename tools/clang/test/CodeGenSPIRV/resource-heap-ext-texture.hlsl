@@ -1,4 +1,4 @@
-// RUN: %dxc -T cs_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
+// RUN: %dxc -T cs_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -fvk-resource-heap-stride 64 -fvk-sampler-heap-stride 32 -spirv %s | FileCheck %s
 
 // Tests Buffer<T> and RWBuffer<T> from descriptor heap (dim=Buffer image types).
 
@@ -8,7 +8,7 @@
 // CHECK: OpExtension "SPV_KHR_untyped_pointers"
 
 // CHECK-DAG: OpDecorate %[[ResourceHeap:[a-zA-Z0-9_]+]] BuiltIn ResourceHeapEXT
-// CHECK-DAG: OpDecorate {{%[a-zA-Z0-9_]+}} ArrayStride 32
+// CHECK-DAG: OpDecorate {{%[a-zA-Z0-9_]+}} ArrayStride 64
 
 // CHECK-DAG: %[[UntypedPtrType:[a-zA-Z0-9_]+]] = OpTypeUntypedPointerKHR UniformConstant
 // CHECK-DAG: %[[BufferType:[a-zA-Z0-9_]+]] = OpTypeImage %float Buffer 2 0 0 1 Rgba32f

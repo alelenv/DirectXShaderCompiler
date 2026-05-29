@@ -1,4 +1,5 @@
 // RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
+// RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s --check-prefix=NOLITERAL
 //
 // [[vk::resource_heap_stride_constant_id(N)]] / [[vk::sampler_heap_stride_constant_id(M)]]
 // emit an OpSpecConstant (decorated SpecId) per heap and replace the literal
@@ -30,8 +31,13 @@
 // Sampler heap.
 // CHECK-DAG: OpDecorateId %[[SampArr:[a-zA-Z0-9_]+]] ArrayStrideIdEXT %[[SSC]]
 
-// ---- Both heaps overridden => no literal ArrayStride anywhere ----
-// CHECK-NOT: OpDecorate %{{[a-zA-Z0-9_]+}} ArrayStride {{[0-9]+}}
+// ---- Both heaps overridden => no literal ArrayStride on any heap runtime array ----
+// The NOLITERAL run (second RUN line) uses only a NOT directive, so FileCheck scans
+// the entire output.  "_runtimearr_type" infix targets only heap runtime arrays;
+// "_runtimearr_uint ArrayStride 4" (RWByteAddressBuffer internal array) does not
+// match and is not a false positive.  The positive CHECK-DAGs above guard the
+// primary regression (ArrayStrideIdEXT present); this guards double-decoration.
+// NOLITERAL-NOT: _runtimearr_type{{[a-zA-Z0-9_]+}} ArrayStride {{[0-9]+}}
 
 struct CBData { uint value; };
 
