@@ -6989,10 +6989,31 @@ SpirvEmitter::doCXXOperatorCallExpr(const CXXOperatorCallExpr *expr,
       const Expr *indexExpr = nullptr;
       getDescriptorHeapOperands(expr, &baseExpr, &indexExpr);
 
-      const Expr *parentExpr = cast<CastExpr>(parentMap->getParent(expr));
+      // The heap index expression must be immediately converted to a concrete
+      // resource type (an implicit cast inserted by the front-end). If the
+      // parent is missing or is not a cast (e.g. the result is discarded as
+      // a statement, or used in a context with no target resource type) we
+      // cannot determine the resource type.
+      const auto *parentExpr =
+          dyn_cast_or_null<CastExpr>(parentMap->getParent(expr));
+      if (!parentExpr) {
+        emitError("ResourceDescriptorHeap/SamplerDescriptorHeap indexing must "
+                  "be used as a resource",
+                  expr->getExprLoc());
+        return nullptr;
+      }
       QualType resourceType = parentExpr->getType();
+      // The heap object must be a direct reference to the builtin heap variable.
+      // Anything else (e.g. a non-variable expression) has no backing VarDecl.
       const auto *declRefExpr = dyn_cast<DeclRefExpr>(baseExpr->IgnoreCasts());
-      auto *decl = cast<VarDecl>(declRefExpr->getDecl());
+      const auto *decl =
+          declRefExpr ? dyn_cast<VarDecl>(declRefExpr->getDecl()) : nullptr;
+      if (!decl) {
+        emitError("unsupported ResourceDescriptorHeap/SamplerDescriptorHeap "
+                  "expression",
+                  baseExpr->getExprLoc());
+        return nullptr;
+      }
       auto *var = declIdMapper.createResourceHeap(decl, resourceType);
 
       auto *index = doExpr(indexExpr);
