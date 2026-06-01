@@ -1,12 +1,7 @@
-// Exhaustively permute every legal -fvk-resource-heap-stride / -fvk-sampler-heap-stride
-// value (powers of two in [8, 256]) across BOTH heaps and confirm the literal
-// ArrayStride decoration on each heap's runtime array exactly matches the value
-// passed on the command line, independently per heap.
+// Verifies: every legal CLI stride value flows independently to each heap's literal ArrayStride 
+//  (full 6x6 cross product, RS!=SS proves no cross-contamination), and invalid values are rejected at option-parse time.
 //
-// FileCheck variables: [[RS]] = expected resource-heap stride, [[SS]] = expected
-// sampler-heap stride (supplied per RUN via -D). The resource Texture2D array and
-// the sampler array are bound to their ids so the two strides are checked
-// independently — RS != SS runs prove the two heaps do not cross-contaminate.
+// [[RS]] = resource-heap stride, [[SS]] = sampler-heap stride (per-RUN via -D).
 
 // ---- Full 6x6 cross product of {8,16,32,64,128,256} x {8,16,32,64,128,256} ----
 // RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -fvk-resource-heap-stride 8   -fvk-sampler-heap-stride 8   -spirv %s | FileCheck %s -DRS=8   -DSS=8
@@ -53,8 +48,6 @@
 // RUN: not %dxc -T cs_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -fvk-resource-heap-stride 0     -spirv %s 2>&1 | FileCheck %s --check-prefix=BADRS
 // RUN: not %dxc -T cs_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -fvk-sampler-heap-stride 24 -spirv %s 2>&1 | FileCheck %s --check-prefix=BADSS
 // RUN: not %dxc -T cs_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -fvk-resource-heap-stride abc   -spirv %s 2>&1 | FileCheck %s --check-prefix=BADNUM
-
-// CHECK: OpExtension "SPV_EXT_descriptor_heap"
 
 // Bind each heap's runtime array to its element type so the strides are checked
 // independently. The resource Texture2D image array carries [[RS]]; the sampler

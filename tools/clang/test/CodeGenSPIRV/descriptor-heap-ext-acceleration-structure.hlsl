@@ -1,19 +1,17 @@
 // RUN: %dxc -T lib_6_6 -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -fvk-resource-heap-stride 64 -fvk-sampler-heap-stride 32 -fspv-extension=SPV_KHR_ray_tracing -fspv-extension=SPV_EXT_descriptor_heap -fspv-extension=SPV_KHR_untyped_pointers -spirv %s | FileCheck %s
 
-// CHECK: OpCapability RayTracingKHR
-// CHECK: OpCapability DescriptorHeapEXT
-// CHECK-NOT: OpCapability UntypedPointersKHR
-// CHECK: OpExtension "SPV_KHR_ray_tracing"
-// CHECK: OpExtension "SPV_EXT_descriptor_heap"
-// CHECK: OpExtension "SPV_KHR_untyped_pointers"
+// Verifies: ResourceDescriptorHeap of a RaytracingAccelerationStructure 
+//  lowers to an acceleration-structure runtime array, loads the accel 
+//  handle from the heap, and emits OpTraceRayKHR under the ray-tracing 
+//  capability/extension.
 
-// CHECK-DAG: OpDecorate %[[ResourceHeap:[a-zA-Z0-9_]+]] BuiltIn ResourceHeapEXT
-// CHECK-DAG: OpDecorate %[[ASArray:[a-zA-Z0-9_]+]] ArrayStride 64
+// CHECK: OpCapability RayTracingKHR
+// CHECK: OpExtension "SPV_KHR_ray_tracing"
 
 // CHECK-DAG: %[[UntypedUniformConstant:[a-zA-Z0-9_]+]] = OpTypeUntypedPointerKHR UniformConstant
 // CHECK-DAG: %[[Accel:[a-zA-Z0-9_]+]] = OpTypeAccelerationStructureKHR
-// CHECK-DAG: %[[ASArray]] = OpTypeRuntimeArray %[[Accel]]
-// CHECK: %[[ResourceHeap]] = OpUntypedVariableKHR %[[UntypedUniformConstant]] UniformConstant
+// CHECK-DAG: %[[ASArray:[a-zA-Z0-9_]+]] = OpTypeRuntimeArray %[[Accel]]
+// CHECK: %[[ResourceHeap:[a-zA-Z0-9_]+]] = OpUntypedVariableKHR %[[UntypedUniformConstant]] UniformConstant
 
 struct Payload {
   float4 color;

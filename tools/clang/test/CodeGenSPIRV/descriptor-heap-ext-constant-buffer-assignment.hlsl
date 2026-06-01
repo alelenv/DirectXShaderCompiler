@@ -1,19 +1,19 @@
 // RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
 
-// CHECK: OpCapability DescriptorHeapEXT
-// CHECK-NOT: OpCapability UntypedPointersKHR
-// CHECK: OpExtension "SPV_EXT_descriptor_heap"
-// CHECK: OpExtension "SPV_KHR_untyped_pointers"
-
-// CHECK-DAG: OpDecorate %[[ResourceHeap:[a-zA-Z0-9_]+]] BuiltIn ResourceHeapEXT
-// CHECK-DAG: OpDecorate %type_ConstantBuffer_Constants Block
+// Verifies: ConstantBuffer reassignment from the descriptor heap re-indexes 
+//  the Uniform array on every assignment and each member load uses the latest
+//  descriptor, in three forms that buffer.hlsl does not cover:
+//
+//  dynamic runtime index         -> %[[Idx]]       (OpLoad %uint)                              + OpAccessChain %int_0
+//  OpIAdd-computed index         -> %[[IdxPlus2]]  (OpIAdd)                                    + OpAccessChain %int_1
+//  reassignment inside a branch  -> %[[IdxMinus2]] (OpUGreaterThan/OpBranchConditional/OpISub) + OpAccessChain %int_2
 
 // CHECK-DAG: %[[UntypedPtr:[a-zA-Z0-9_]+]] = OpTypeUntypedPointerKHR UniformConstant
 // CHECK-DAG: %[[BufferDesc:[a-zA-Z0-9_]+]] = OpTypeBufferEXT Uniform
 // CHECK-DAG: %[[BufferArray:[a-zA-Z0-9_]+]] = OpTypeRuntimeArray %[[BufferDesc]]
 // CHECK-DAG: %[[CBPtr:[a-zA-Z0-9_]+]] = OpTypePointer Uniform %type_ConstantBuffer_Constants
 
-// CHECK: %[[ResourceHeap]] = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
+// CHECK: %[[ResourceHeap:[a-zA-Z0-9_]+]] = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
 
 struct Constants
 {

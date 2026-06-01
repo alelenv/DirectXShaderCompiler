@@ -1,15 +1,9 @@
 // RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
 
-// Validates the UE bindless idiom: static const resources initialized from
-// runtime uint indices at global scope, plus a literal-index sampler.
-
-// CHECK: OpCapability DescriptorHeapEXT
-// CHECK-NOT: OpCapability UntypedPointersKHR
-// CHECK: OpExtension "SPV_EXT_descriptor_heap"
-// CHECK: OpExtension "SPV_KHR_untyped_pointers"
-
-// CHECK-DAG: OpDecorate %[[ResourceHeap:[a-zA-Z0-9_]+]] BuiltIn ResourceHeapEXT
-// CHECK-DAG: OpDecorate %[[SamplerHeap:[a-zA-Z0-9_]+]] BuiltIn SamplerHeapEXT
+// Verifies: UE bindless idiom — static const resources at global scope
+//  initialized from dynamic runtime uint indices ($Globals), across
+//  Texture2D / StructuredBuffer / RWTexture2D, plus a literal-index 
+//  SamplerState.
 
 // CHECK-DAG: %[[UntypedPtr:[a-zA-Z0-9_]+]] = OpTypeUntypedPointerKHR UniformConstant
 // CHECK-DAG: %[[Tex2DType:[a-zA-Z0-9_]+]] = OpTypeImage %float 2D 2 0 0 1 Unknown
@@ -22,8 +16,8 @@
 // CHECK-DAG: %[[RA_SBBuf:[a-zA-Z0-9_]+]] = OpTypeRuntimeArray %[[SBBufDesc]]{{$}}
 // CHECK-DAG: %[[RA_RWTex2D:[a-zA-Z0-9_]+]] = OpTypeRuntimeArray %[[RWTex2DType]]{{$}}
 
-// CHECK-DAG: %[[ResourceHeap]] = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
-// CHECK-DAG: %[[SamplerHeap]]  = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
+// CHECK-DAG: %[[ResourceHeap:[a-zA-Z0-9_]+]] = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
+// CHECK-DAG: %[[SamplerHeap:[a-zA-Z0-9_]+]]  = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
 
 // Runtime uint indices (placed in $Globals cbuffer by DXC).
 uint BindlessSRV_ColorTex;

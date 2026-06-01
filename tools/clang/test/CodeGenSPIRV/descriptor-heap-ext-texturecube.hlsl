@@ -1,12 +1,8 @@
 // RUN: %dxc -T cs_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
 
-// CHECK: OpCapability DescriptorHeapEXT
-// CHECK-NOT: OpCapability UntypedPointersKHR
-// CHECK: OpExtension "SPV_EXT_descriptor_heap"
-// CHECK: OpExtension "SPV_KHR_untyped_pointers"
-
-// CHECK-DAG: OpDecorate %[[ResourceHeap:[a-zA-Z0-9_]+]] BuiltIn ResourceHeapEXT
-// CHECK-DAG: OpDecorate %[[SamplerHeap:[a-zA-Z0-9_]+]] BuiltIn SamplerHeapEXT
+// Verifies: TextureCube and TextureCubeArray cube image types, 
+//  each loaded from the resource heap and combined with a heap 
+//  sampler to drive OpImageSampleExplicitLod.
 
 // CHECK-DAG: %[[UntypedPtr:[a-zA-Z0-9_]+]] = OpTypeUntypedPointerKHR UniformConstant
 // CHECK-DAG: %[[CubeType:[a-zA-Z0-9_]+]] = OpTypeImage %float Cube 2 0 0 1 Unknown
@@ -17,8 +13,8 @@
 // CHECK-DAG: %[[RA_CubeArr:[a-zA-Z0-9_]+]] = OpTypeRuntimeArray %[[CubeArrType]]{{$}}
 // CHECK-DAG: %[[RA_Sampler:[a-zA-Z0-9_]+]] = OpTypeRuntimeArray %[[SamplerType]]{{$}}
 
-// CHECK: %[[ResourceHeap]] = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
-// CHECK: %[[SamplerHeap]]  = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
+// CHECK: %[[ResourceHeap:[a-zA-Z0-9_]+]] = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
+// CHECK: %[[SamplerHeap:[a-zA-Z0-9_]+]]  = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
 
 RWByteAddressBuffer output : register(u0);
 

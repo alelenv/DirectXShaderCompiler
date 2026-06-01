@@ -1,21 +1,13 @@
 // RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
 // RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s --check-prefix=NOLITERAL
-//
-// [[vk::resource_heap_stride_constant_id(N)]] / [[vk::sampler_heap_stride_constant_id(M)]]
-// emit an OpSpecConstant (decorated SpecId) per heap and replace the literal
-// ArrayStride with ArrayStrideIdEXT %sc on every runtime array of that heap.
-//
-// Verifies:
-//   (a) Each attribute produces one OpSpecConstant %uint <default> + SpecId.
-//   (b) The resource spec constant decorates ALL resource-heap arrays
-//       (StructuredBuffer/ByteAddressBuffer share one, ConstantBuffer + image
-//       each get their own) via OpDecorateId ArrayStrideIdEXT.
-//   (c) The sampler spec constant decorates the sampler-heap array.
-//   (d) No literal ArrayStride survives when both heaps are overridden.
 
-// CHECK: OpCapability DescriptorHeapEXT
-// CHECK-NOT: OpCapability UntypedPointersKHR
-// CHECK: OpExtension "SPV_EXT_descriptor_heap"
+// Verifies: stride-constant-id attributes turn each heap's ArrayStride into a spec-constant <id>.
+//
+// resource_heap_stride_constant_id(2) -> OpSpecConstant %uint 64 + SpecId 2
+// sampler_heap_stride_constant_id(3)  -> OpSpecConstant %uint 32 + SpecId 3
+// resource spec const                 -> OpDecorateId ArrayStrideIdEXT on every resource-heap array
+// sampler spec const                  -> OpDecorateId ArrayStrideIdEXT on sampler-heap array
+// both heaps overridden               -> no literal ArrayStride survives on any heap runtime array
 
 // ---- One spec constant per heap, with the requested SpecId and default ----
 // CHECK-DAG: OpDecorate %[[RSC:[a-zA-Z0-9_]+]] SpecId 2

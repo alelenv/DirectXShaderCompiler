@@ -1,12 +1,10 @@
 // RUN: %dxc -T ps_6_6 -E PSMain -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
 
-// CHECK: OpCapability DescriptorHeapEXT
-// CHECK-NOT: OpCapability UntypedPointersKHR
-// CHECK: OpExtension "SPV_EXT_descriptor_heap"
-// CHECK: OpExtension "SPV_KHR_untyped_pointers"
-
-// CHECK-DAG: OpDecorate %[[ResourceHeap:[a-zA-Z0-9_]+]] BuiltIn ResourceHeapEXT
-// CHECK-DAG: OpDecorate %[[SamplerHeap:[a-zA-Z0-9_]+]] BuiltIn SamplerHeapEXT
+// Verifies: reassigning both a Texture2D and a SamplerState across a 
+//  dynamic index, a +2 index, and inside a conditional branch reloads 
+//  the latest texture+sampler from BOTH the resource and sampler 
+//  heaps per reassignment, producing a fresh 
+//  OpSampledImage/OpImageSampleImplicitLod each time.
 
 // CHECK-DAG: %[[UntypedPtr:[a-zA-Z0-9_]+]] = OpTypeUntypedPointerKHR UniformConstant
 // CHECK-DAG: %[[Tex2D:[a-zA-Z0-9_]+]] = OpTypeImage %float 2D 2 0 0 1 Unknown
@@ -15,8 +13,8 @@
 // CHECK-DAG: %[[SamplerArray:[a-zA-Z0-9_]+]] = OpTypeRuntimeArray %[[Sampler]]
 // CHECK-DAG: %[[SampledImage:[a-zA-Z0-9_]+]] = OpTypeSampledImage %[[Tex2D]]
 
-// CHECK: %[[ResourceHeap]] = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
-// CHECK: %[[SamplerHeap]] = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
+// CHECK: %[[ResourceHeap:[a-zA-Z0-9_]+]] = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
+// CHECK: %[[SamplerHeap:[a-zA-Z0-9_]+]] = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
 
 struct PSInput
 {

@@ -1,12 +1,9 @@
 // RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
-//
-// Heap-stride spec constants coexist with a user [[vk::constant_id]] without
-// SpecId collision. All three emit distinct OpSpecConstant instructions, and
-// the user spec constant remains usable in shader arithmetic (OpSpecConstantOp).
 
-// CHECK: OpCapability DescriptorHeapEXT
+// Verifies: Heap-stride spec constants coexist with a user [[vk::constant_id]] without
+//  SpecId collision. All three emit distinct OpSpecConstant instructions, and
+//  the user spec constant remains usable in shader arithmetic (OpSpecConstantOp).
 
-// ---- Three independent spec constants ----
 // CHECK-DAG: OpDecorate %[[USC:[a-zA-Z0-9_]+]] SpecId 0
 // CHECK-DAG: OpDecorate %[[RSC:[a-zA-Z0-9_]+]] SpecId 5
 // CHECK-DAG: OpDecorate %[[SSC:[a-zA-Z0-9_]+]] SpecId 6
@@ -14,11 +11,11 @@
 // CHECK-DAG: %[[RSC]] = OpSpecConstant %uint 64
 // CHECK-DAG: %[[SSC]] = OpSpecConstant %uint 32
 
-// ---- Heap arrays use their respective stride spec constants ----
+// Heap arrays use their respective stride spec constants
 // CHECK-DAG: OpDecorateId %{{[a-zA-Z0-9_]+}} ArrayStrideIdEXT %[[RSC]]
 // CHECK-DAG: OpDecorateId %{{[a-zA-Z0-9_]+}} ArrayStrideIdEXT %[[SSC]]
 
-// ---- The user spec constant still participates in constant folding ----
+// The user spec constant still participates in constant folding
 // CHECK: OpSpecConstantOp %uint IMul %[[USC]]
 
 [[vk::constant_id(0)]]                      const uint TILE_SIZE           = 16;

@@ -1,11 +1,11 @@
 // RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -fvk-resource-heap-stride 128 -fvk-sampler-heap-stride 16 -spirv %s | FileCheck %s --check-prefix=CLI
 // RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -fvk-resource-heap-stride 128 -spirv -DWITHATTR %s 2>&1 | FileCheck %s --check-prefix=WARN
 // RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -fvk-resource-heap-stride 128 -spirv -DWITHATTR %s | FileCheck %s --check-prefix=OVERRIDE
-//
-// -fvk-resource-heap-stride / -fvk-sampler-heap-stride emit a fixed literal
-// ArrayStride. The command-line override has the highest precedence: it beats a
-// [[vk::*_heap_stride_constant_id]] attribute. The attribute is then ignored
-// (with a warning) and no ArrayStrideIdEXT is emitted for that heap.
+
+// Verifies: a command-line literal stride has the HIGHEST precedence.
+//   1) -fvk-resource-heap-stride / -fvk-sampler-heap-stride emit a literal ArrayStride.
+//   2) the CLI value BEATS a [[vk::*_heap_stride_constant_id]] attribute.
+//   3) the overridden attribute is ignored (with a warning); no ArrayStrideIdEXT.
 
 // ---- Command-line literal strides, no attribute ----
 // CLI-DAG: OpDecorate %{{[a-zA-Z0-9_]+}} ArrayStride 128

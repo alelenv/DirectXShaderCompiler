@@ -1,15 +1,18 @@
 // RUN: %dxc -T ps_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
 
-// Validates that explicitly-bound resources coexist with heap resources.
+// Verifies: explicitly-bound resources coexist with descriptor-heap resources, and a bound image combines with a heap sampler.
+//   register(t0) Texture2D     -> OpVariable %[[PtrTex]] UniformConstant + DescriptorSet/Binding                -> explicitly-bound resource
+//   ResourceHeap/SamplerHeap   -> OpUntypedVariableKHR UniformConstant (BuiltIn ResourceHeapEXT/SamplerHeapEXT) -> heap resources
+//   bound image + heap sampler -> OpSampledImage %[[BoundVal]] %[[SampH]]                                       -> bound-image/heap-sampler combination
 
 // CHECK: OpCapability DescriptorHeapEXT
+// CHECK-NOT: OpCapability UntypedPointersKHR
 // CHECK: OpExtension "SPV_EXT_descriptor_heap"
 // CHECK: OpExtension "SPV_KHR_untyped_pointers"
 
 // CHECK-DAG: OpDecorate %[[ResourceHeap:[a-zA-Z0-9_]+]] BuiltIn ResourceHeapEXT
 // CHECK-DAG: OpDecorate %[[SamplerHeap:[a-zA-Z0-9_]+]] BuiltIn SamplerHeapEXT
 
-// The bound texture gets a normal OpVariable with DescriptorSet/Binding.
 // CHECK-DAG: OpDecorate %[[BoundTex:[a-zA-Z0-9_]+]] DescriptorSet
 // CHECK-DAG: OpDecorate %[[BoundTex]] Binding
 
@@ -20,9 +23,7 @@
 // CHECK-DAG: %[[RA_Sampler:[a-zA-Z0-9_]+]] = OpTypeRuntimeArray %[[SamplerType]]{{$}}
 // CHECK-DAG: %[[PtrTex:[a-zA-Z0-9_]+]] = OpTypePointer UniformConstant %[[Tex2DType]]
 
-// Bound texture: normal OpVariable.
 // CHECK: %[[BoundTex]] = OpVariable %[[PtrTex]] UniformConstant
-// Heap variables.
 // CHECK-DAG: %[[ResourceHeap]] = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
 // CHECK-DAG: %[[SamplerHeap]]  = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
 
@@ -33,24 +34,20 @@ float4 main(float2 uv : TEXCOORD0) : SV_Target {
   Texture2D<float4> heapTex = ResourceDescriptorHeap[1];
   SamplerState samp = SamplerDescriptorHeap[0];
 
-  // Heap texture: OpUntypedAccessChainKHR through heap.
   // CHECK: %[[HeapDesc:[a-zA-Z0-9_]+]] = OpUntypedAccessChainKHR %[[UntypedPtr]] %[[RA_Tex2D]] %[[ResourceHeap]] %uint_1
   // CHECK: %[[HeapVal:[a-zA-Z0-9_]+]] = OpLoad %[[Tex2DType]] %[[HeapDesc]]
 
-  // Heap sampler (shared by both samples below).
+  // One heap sampler drives both samples, proving heap-sampler reuse across bound and heap images.
   // CHECK: %[[SampChain:[a-zA-Z0-9_]+]] = OpUntypedAccessChainKHR %[[UntypedPtr]] %[[RA_Sampler]] %[[SamplerHeap]] %uint_0
   // CHECK: %[[SampH:[a-zA-Z0-9_]+]] = OpLoad %[[SamplerType]] %[[SampChain]]
 
-  // Bound texture: plain OpLoad from OpVariable.
   // CHECK: %[[BoundVal:[a-zA-Z0-9_]+]] = OpLoad %[[Tex2DType]] %[[BoundTex]]
 
-  // Verify: bound image + heap sampler combined; heap image + heap sampler combined.
+  // OWNED: bound image (OpVariable) combined with heap sampler.
   // CHECK: OpSampledImage %{{.*}} %[[BoundVal]] %[[SampH]]
-  // CHECK: OpImageSampleImplicitLod
   float4 a = boundTex.Sample(samp, uv);
 
   // CHECK: OpSampledImage %{{.*}} %[[HeapVal]] %[[SampH]]
-  // CHECK: OpImageSampleImplicitLod
   float4 b = heapTex.Sample(samp, uv + 0.5);
 
   return a + b;

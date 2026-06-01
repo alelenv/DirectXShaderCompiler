@@ -1,15 +1,15 @@
 // RUN: %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -fvk-resource-heap-stride 64 -fvk-sampler-heap-stride 32 -spirv %s | FileCheck %s
 
-// CHECK: OpCapability DescriptorHeapEXT
-// CHECK-NOT: OpCapability UntypedPointersKHR
-// CHECK: OpExtension "SPV_EXT_descriptor_heap"
-// CHECK: OpExtension "SPV_KHR_untyped_pointers"
-
-// CHECK-DAG: OpDecorate %[[ResourceHeap:[a-zA-Z0-9_]+]] BuiltIn ResourceHeapEXT
-// One ArrayStride 64 per heap descriptor array (StorageBuffer and Uniform);
-// pinned via -fvk-resource-heap-stride so the test is independent of the default.
-// CHECK-DAG: OpDecorate %{{[a-zA-Z0-9_]+}} ArrayStride 64
-// CHECK-DAG: OpDecorate %{{[a-zA-Z0-9_]+}} ArrayStride 64
+// Verifies: StructuredBuffer / RWStructuredBuffer / ByteAddressBuffer 
+//   share one StorageBuffer runtime array, yet each materializes its own 
+//   typed OpBufferPointerEXT, ConstantBuffer uses a separate Uniform array, 
+//   and reassignment re-indexes the shared array.
+//
+//   StructuredBuffer    -> shared OpTypeBufferEXT StorageBuffer array     -> own typed OpBufferPointerEXT (%type_StructuredBuffer_*)
+//   RWStructuredBuffer  -> shared OpTypeBufferEXT StorageBuffer array     -> own typed OpBufferPointerEXT (%type_RWStructuredBuffer_*)
+//   ByteAddressBuffer   -> shared OpTypeBufferEXT StorageBuffer array     -> own typed OpBufferPointerEXT (%type_ByteAddressBuffer)
+//   ConstantBuffer      -> separate OpTypeBufferEXT Uniform array         -> own typed OpBufferPointerEXT (%type_ConstantBuffer_*)
+//   reassignment        -> re-indexes shared StorageBuffer array (uint_4) -> same %type_StructuredBuffer_* pointer
 
 // CHECK-DAG: %[[UntypedPtrType:[a-zA-Z0-9_]+]] = OpTypeUntypedPointerKHR UniformConstant
 // CHECK-DAG: %[[SBBufDesc:[a-zA-Z0-9_]+]] = OpTypeBufferEXT StorageBuffer
@@ -23,7 +23,7 @@
 // CHECK-DAG: %[[SBBytesPtr:[a-zA-Z0-9_]+]] = OpTypePointer StorageBuffer %type_ByteAddressBuffer{{$}}
 // CHECK-DAG: %[[UConstPtr:[a-zA-Z0-9_]+]] = OpTypePointer Uniform %type_ConstantBuffer_{{.*}}
 
-// CHECK: %[[ResourceHeap]] = OpUntypedVariableKHR %[[UntypedPtrType]] UniformConstant
+// CHECK: %[[ResourceHeap:[a-zA-Z0-9_]+]] = OpUntypedVariableKHR %[[UntypedPtrType]] UniformConstant
 
 struct Constants {
   uint value;

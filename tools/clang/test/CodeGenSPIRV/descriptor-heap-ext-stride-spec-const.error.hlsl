@@ -1,7 +1,3 @@
-// Diagnostics for the descriptor-heap stride spec-constant attributes. Each RUN
-// activates exactly one case via -D because DXC stops codegen after the first
-// error. The NOHEAPFLAG case intentionally omits -fspv-use-descriptor-heap.
-//
 // RUN: not %dxc -T cs_6_6 -E main -Od -fspv-target-env=vulkan1.3 -spirv -DNOHEAPFLAG %s 2>&1 | FileCheck %s --check-prefix=NOHEAPFLAG
 // RUN: not %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv -DCOMBINED %s 2>&1 | FileCheck %s --check-prefix=COMBINED
 // RUN: not %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv -DSPECID_USER %s 2>&1 | FileCheck %s --check-prefix=SPECID_USER
@@ -11,6 +7,11 @@
 // RUN: not %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv -DNOTPOW2 %s 2>&1 | FileCheck %s --check-prefix=NOTPOW2
 // RUN: not %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv -DNONUINT %s 2>&1 | FileCheck %s --check-prefix=NONUINT
 // RUN: not %dxc -T cs_6_6 -E main -Od -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv -DNOTGLOBAL %s 2>&1 | FileCheck %s --check-prefix=NOTGLOBAL
+
+// Verifies: every misuse of the descriptor-heap stride spec-constant attributes emits its specific diagnostic.
+//  Diagnostics for the descriptor-heap stride spec-constant attributes. Each RUN
+//  activates exactly one case via -D because DXC stops codegen after the first
+//  error. The NOHEAPFLAG case intentionally omits -fspv-use-descriptor-heap.
 
 // NOHEAPFLAG:   error: {{.*resource_heap_stride_constant_id.*}} requires -fspv-use-descriptor-heap; without it the attribute has no effect
 // COMBINED:     error: {{.*resource_heap_stride_constant_id.*}} and {{.*constant_id.*}} are mutually exclusive; remove one

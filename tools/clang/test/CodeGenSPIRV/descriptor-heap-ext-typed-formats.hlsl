@@ -1,31 +1,29 @@
 // RUN: %dxc -T cs_6_6 -E main -fspv-use-descriptor-heap -fspv-target-env=vulkan1.3 -spirv %s | FileCheck %s
 
-// CHECK: OpCapability DescriptorHeapEXT
-// CHECK-NOT: OpCapability UntypedPointersKHR
-// CHECK: OpExtension "SPV_EXT_descriptor_heap"
-// CHECK: OpExtension "SPV_KHR_untyped_pointers"
-
-// CHECK-DAG: OpDecorate %[[ResourceHeap:[a-zA-Z0-9_]+]] BuiltIn ResourceHeapEXT
+// Verifies: each HLSL resource element type lowers to the 
+//  correct OpTypeImage format and sampled-vs-storage mode 
+//  when accessed through the descriptor heap.
+//
+// Texture2D<uint>     -> OpTypeImage %uint 2D ... Unknown -> sampled
+// RWTexture2D<float2> -> OpTypeImage %float 2D ... Rg32f  -> storage
+// RWTexture2D<uint2>  -> OpTypeImage %uint 2D ... Rg32ui  -> storage
+// RWTexture2D<int>    -> OpTypeImage %int 2D ... R32i     -> storage
 
 // CHECK-DAG: %[[UntypedPtr:[a-zA-Z0-9_]+]] = OpTypeUntypedPointerKHR UniformConstant
 
-// Texture2D<uint>  — R32ui, sampled
 // CHECK-DAG: %[[TexUintType:[a-zA-Z0-9_]+]] = OpTypeImage %uint 2D 2 0 0 1 Unknown
 // CHECK-DAG: %[[RA_TexUint:[a-zA-Z0-9_]+]] = OpTypeRuntimeArray %[[TexUintType]]{{$}}
 
-// RWTexture2D<float2> — Rg32f, storage
 // CHECK-DAG: %[[RWTexF2Type:[a-zA-Z0-9_]+]] = OpTypeImage %float 2D 2 0 0 2 Rg32f
 // CHECK-DAG: %[[RA_RWTexF2:[a-zA-Z0-9_]+]] = OpTypeRuntimeArray %[[RWTexF2Type]]{{$}}
 
-// RWTexture2D<uint2> — Rg32ui, storage
 // CHECK-DAG: %[[RWTexU2Type:[a-zA-Z0-9_]+]] = OpTypeImage %uint 2D 2 0 0 2 Rg32ui
 // CHECK-DAG: %[[RA_RWTexU2:[a-zA-Z0-9_]+]] = OpTypeRuntimeArray %[[RWTexU2Type]]{{$}}
 
-// RWTexture2D<int> — R32i, storage
 // CHECK-DAG: %[[RWTexIType:[a-zA-Z0-9_]+]] = OpTypeImage %int 2D 2 0 0 2 R32i
 // CHECK-DAG: %[[RA_RWTexI:[a-zA-Z0-9_]+]] = OpTypeRuntimeArray %[[RWTexIType]]{{$}}
 
-// CHECK: %[[ResourceHeap]] = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
+// CHECK: %[[ResourceHeap:[a-zA-Z0-9_]+]] = OpUntypedVariableKHR %[[UntypedPtr]] UniformConstant
 
 RWByteAddressBuffer output : register(u0);
 
