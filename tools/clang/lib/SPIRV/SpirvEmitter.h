@@ -413,13 +413,36 @@ private:
                                           uint32_t specConstId,
                                           llvm::StringRef attrName);
 
-  /// Returns the OpTypeRuntimeArray for a descriptor-heap array of \p elemType.
+  /// Emits a diagnostic and returns true if specConstId collides with the
+  /// other heap-stride attribute (otherStride) or a user [[vk::constant_id]].
+  /// attrName names the attribute being declared. Caller must return early
+  /// when this returns true. Shared by create{Resource,Sampler}HeapStrideConstant.
+  bool checkHeapStrideSpecIdConflict(
+      const VarDecl *varDecl, uint32_t specConstId, llvm::StringRef attrName,
+      const llvm::Optional<DeclResultIdMapper::HeapStrideSpecConst>
+          &otherStride);
+
+  /// Returns the OpTypeRuntimeArray for a descriptor-heap array of elemType.
   /// If a stride spec constant was declared for the relevant heap
-  /// (sampler heap when \p onSamplerHeap, otherwise resource heap), the array
+  /// (sampler heap when onSamplerHeap, otherwise resource heap), the array
   /// carries an ArrayStrideIdEXT decoration; otherwise it uses the literals
   /// kDefaultSamplerHeapStride / kDefaultResourceHeapStride.
   const SpirvType *getDescriptorHeapRuntimeArrayType(const SpirvType *elemType,
                                                      bool onSamplerHeap);
+
+  /// Emits the native (SPV_EXT_descriptor_heap) access for a buffer-like
+  /// resource (StructuredBuffer/ByteAddressBuffer/ConstantBuffer/TextureBuffer
+  /// and their RW variants) loaded from heapVar at index:
+  /// OpUntypedAccessChainKHR -> OpBufferPointerEXT. Records the access in
+  /// descriptorHeapBufferAccesses[expr] and returns the buffer-data pointer, or
+  /// nullptr (after emitting an error) on type-lowering failure. Caller must
+  /// have already checked the resource is buffer-like.
+  SpirvInstruction *emitDescriptorHeapBufferAccess(QualType resourceType,
+                                                    SpirvInstruction *heapVar,
+                                                    SpirvInstruction *index,
+                                                    const Expr *expr,
+                                                    const Expr *baseExpr,
+                                                    const Expr *indexExpr);
 
   /// Generates the necessary instructions for conducting the given binary
   /// operation on lhs and rhs.
@@ -1225,14 +1248,14 @@ private:
                              const Expr *srcExpr);
   bool tryToAssignCounterVar(const Expr *dstExpr, const Expr *srcExpr);
 
-  /// Marks an alias resource as heap-loaded with no associated counter.
+  /// \brief Marks an alias resource as heap-loaded with no associated counter.
   void markDescriptorHeapCounterUnsupported(const DeclaratorDecl *decl);
 
-  /// Returns true if counter operations on the resource expression are known to
+  /// \brief Returns true if counter operations on the resource expression are known to
   /// be unsupported because the resource came from ResourceDescriptorHeap.
   bool isDescriptorHeapCounterUnsupported(const Expr *expr) const;
 
-  /// Records the descriptor heap index assigned to a local image resource
+  /// \brief Records the descriptor heap index assigned to a local image resource
   /// alias, if the source expression came directly from a descriptor heap. This
   /// mirrors the normal resource handle store while preserving enough
   /// information to recreate OpUntypedImageTexelPointerEXT after reassignment.
@@ -1245,22 +1268,39 @@ private:
   bool tryToAssignDescriptorHeapBufferAlias(const Expr *dstExpr,
                                             const Expr *srcExpr);
 
-  /// Emits the instructions that re-derive the buffer-data pointer for a
-  /// descriptor-heap buffer alias \p decl (OpLoad of the saved index, then
-  /// OpUntypedAccessChainKHR + OpBufferPointerEXT). Returns nullptr if \p decl
+  /// \brief Creates the "<name>.descriptor.index" function variable used to remember
+  /// the descriptor heap index of a local resource alias dstVar.
+  SpirvVariable *createDescriptorHeapIndexVar(const VarDecl *dstVar);
+
+  /// \brief If decl is a function-local variable initialized directly from a
+  /// descriptor heap subscript (e.g. ResourceDescriptorHeap[i]), creates the
+  /// appropriate alias and returns true. Returns false if decl is not such a
+  /// descriptor-heap alias and should be emitted as a normal variable.
+  bool tryToCreateDescriptorHeapAlias(const VarDecl *decl, const Expr *init);
+
+  /// \brief Handles a buffer = ResourceDescriptorHeap[i] assignment. Returns None if
+  /// assignExpr is not such an assignment (caller should fall back to a
+  /// normal assignment). Otherwise the alias was created and the wrapped value
+  /// is the result of the assignment expression (possibly nullptr).
+  llvm::Optional<SpirvInstruction *>
+  tryToAssignToDescriptorHeapBuffer(const BinaryOperator *assignExpr);
+
+  /// \brief Emits the instructions that re-derive the buffer-data pointer for a
+  /// descriptor-heap buffer alias decl (OpLoad of the saved index, then
+  /// OpUntypedAccessChainKHR + OpBufferPointerEXT). Returns nullptr if decl
   /// is not a recorded heap buffer alias. Not a pure lookup -- it emits.
   SpirvInstruction *emitDescriptorHeapBufferPointer(const VarDecl *decl,
                                                     SourceLocation loc);
 
-  /// Emits an OpUntypedImageTexelPointerEXT for a descriptor-heap image alias
-  /// \p decl (OpLoad of the saved index, then OpUntypedAccessChainKHR feeding
-  /// the texel pointer). Returns nullptr if \p decl is not a recorded heap
+  /// \brief Emits an OpUntypedImageTexelPointerEXT for a descriptor-heap image alias
+  /// decl (OpLoad of the saved index, then OpUntypedAccessChainKHR feeding
+  /// the texel pointer). Returns nullptr if decl is not a recorded heap
   /// image alias. Symmetric with emitDescriptorHeapBufferPointer.
   SpirvInstruction *emitDescriptorHeapImageTexelPointer(
       const VarDecl *decl, SpirvInstruction *coordinate,
       SpirvInstruction *sample, QualType resultType, SourceLocation loc);
 
-  /// Emits OpLoad of \p indexVar then OpUntypedAccessChainKHR into the heap,
+  /// \brief Emits OpLoad of indexVar then OpUntypedAccessChainKHR into the heap,
   /// yielding the per-descriptor pointer shared by the buffer/image alias
   /// re-derivation paths above.
   SpirvInstruction *emitDescriptorHeapAccessChain(const SpirvType *arrayType,
@@ -1268,7 +1308,7 @@ private:
                                                   SpirvVariable *indexVar,
                                                   SourceLocation loc);
 
-  /// Stores \p index (cast to uint when needed) into the alias \p indexVar,
+  /// \brief Stores index (cast to uint when needed) into the alias indexVar,
   /// shared by the image/buffer alias-assignment paths.
   void storeDescriptorHeapIndex(SpirvVariable *indexVar,
                                 SpirvInstruction *index, QualType indexType,
