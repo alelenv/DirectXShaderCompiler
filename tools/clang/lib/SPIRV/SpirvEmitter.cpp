@@ -5279,6 +5279,17 @@ SpirvInstruction *SpirvEmitter::emitDescriptorHeapImageTexelPointer(
   return ptr;
 }
 
+// Descriptor-heap buffers: ConstantBuffer is a UBO (Uniform); every other
+// buffer resource (Structured/RW/ByteAddress, TextureBuffer) is an SSBO
+// (StorageBuffer). Here because the opaque OpTypeBufferEXT descriptor 
+// carries no pointee interface type, so RemoveBufferBlockVisitor
+// cannot infer/correct its storage class post-lowering.
+static spv::StorageClass
+getDescriptorHeapBufferStorageClass(QualType resourceType) {
+  return isConstantBuffer(resourceType) ? spv::StorageClass::Uniform
+                                        : spv::StorageClass::StorageBuffer;
+}
+
 SpirvInstruction *SpirvEmitter::emitDescriptorHeapBufferAccess(
     QualType resourceType, SpirvInstruction *heapVar, SpirvInstruction *index,
     const Expr *expr, const Expr *baseExpr, const Expr *indexExpr) {
@@ -5294,11 +5305,8 @@ SpirvInstruction *SpirvEmitter::emitDescriptorHeapBufferAccess(
   if (isConstantTextureBuffer(resourceType)) {
     layoutRule = isConstantBuffer(resourceType) ? spirvOptions.cBufferLayoutRule
                                                 : spirvOptions.tBufferLayoutRule;
-    const auto storageClass = isConstantBuffer(resourceType)
-                                  ? spv::StorageClass::Uniform
-                                  : spv::StorageClass::StorageBuffer;
-    bufferDataPointerType =
-        spvContext.getPointerType(bufferDataType, storageClass);
+    bufferDataPointerType = spvContext.getPointerType(
+        bufferDataType, getDescriptorHeapBufferStorageClass(resourceType));
   } else {
     bufferDataPointerType = dyn_cast<SpirvPointerType>(bufferDataType);
   }
